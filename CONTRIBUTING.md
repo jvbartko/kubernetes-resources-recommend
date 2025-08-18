@@ -21,7 +21,7 @@ Thank you for your interest in contributing to Kubernetes Resources Recommend! W
 
 ## 📜 Code of Conduct
 
-This project and everyone participating in it is governed by our Code of Conduct. By participating, you are expected to uphold this code. Please report unacceptable behavior to [project maintainers](mailto:your-email@example.com).
+This project and everyone participating in it is governed by our Code of Conduct. By participating, you are expected to uphold this code. Please report unacceptable behavior to [project maintainers](mailto:luo_zi_jian@hotmail.com).
 
 ### Our Standards
 
