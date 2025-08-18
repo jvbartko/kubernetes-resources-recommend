@@ -15,6 +15,14 @@ import (
 	"kubernetes-resources-recommend/internal/types"
 )
 
+// ResourceConfig represents current resource configuration for a container
+type ResourceConfig struct {
+	RequestMB    int64
+	LimitMB      int64
+	RequestBytes float64
+	LimitBytes   float64
+}
+
 // Recommender handles the memory recommendation logic
 type Recommender struct {
 	client          *prometheus.Client
@@ -77,14 +85,54 @@ func (r *Recommender) GenerateRecommendations(ctx context.Context) ([]types.Reco
 	var recommendations []types.RecommendationResult
 	r.mux.RLock()
 	for deployment, containers := range r.results {
-		for container, memoryBytes := range containers {
+		for container, recommendedMemoryBytes := range containers {
+			// Get current resource configuration
+			currentConfig, err := r.getCurrentResourceConfig(ctx, deployment, container)
+			if err != nil {
+				log.Printf("Warning: failed to get current config for %s/%s: %v", deployment, container, err)
+				currentConfig = &ResourceConfig{} // Use zero values if can't get current config
+			}
+
+			// Calculate recommended values
+			recommendedRequestMB := int64(recommendedMemoryBytes) / 1024 / 1024
+			recommendedLimitMB := int64(recommendedMemoryBytes*r.limitMultiplier) / 1024 / 1024
+			recommendedLimitBytes := recommendedMemoryBytes * r.limitMultiplier
+
+			// Calculate optimization metrics
+			requestOptimizationMB := currentConfig.RequestMB - recommendedRequestMB
+			limitOptimizationMB := currentConfig.LimitMB - recommendedLimitMB
+
+			var requestOptimizationPct, limitOptimizationPct float64
+			if currentConfig.RequestMB > 0 {
+				requestOptimizationPct = float64(requestOptimizationMB) / float64(currentConfig.RequestMB) * 100
+			}
+			if currentConfig.LimitMB > 0 {
+				limitOptimizationPct = float64(limitOptimizationMB) / float64(currentConfig.LimitMB) * 100
+			}
+
 			recommendations = append(recommendations, types.RecommendationResult{
-				Namespace:             r.namespace,
-				Deployment:            deployment,
-				Container:             container,
-				MemoryRequestMB:       int64(memoryBytes) / 1024 / 1024,
-				MemoryLimitMB:         int64(memoryBytes*r.limitMultiplier) / 1024 / 1024,
-				MemoryRequestBytes:    memoryBytes,
+				Namespace:  r.namespace,
+				Deployment: deployment,
+				Container:  container,
+
+				// Current configuration
+				CurrentRequestMB:    currentConfig.RequestMB,
+				CurrentLimitMB:      currentConfig.LimitMB,
+				CurrentRequestBytes: currentConfig.RequestBytes,
+				CurrentLimitBytes:   currentConfig.LimitBytes,
+
+				// Recommended configuration
+				RecommendedRequestMB:    recommendedRequestMB,
+				RecommendedLimitMB:      recommendedLimitMB,
+				RecommendedRequestBytes: recommendedMemoryBytes,
+				RecommendedLimitBytes:   recommendedLimitBytes,
+
+				// Optimization metrics
+				RequestOptimizationMB:  requestOptimizationMB,
+				LimitOptimizationMB:    limitOptimizationMB,
+				RequestOptimizationPct: requestOptimizationPct,
+				LimitOptimizationPct:   limitOptimizationPct,
+
 				MemoryLimitMultiplier: r.limitMultiplier,
 			})
 		}
@@ -242,4 +290,55 @@ func (r *Recommender) getPodMemoryUsage(ctx context.Context, pods string, queryT
 		r.namespace, pods)
 
 	return r.client.QueryAtTime(ctx, promql, queryTime)
+}
+
+// getCurrentResourceConfig retrieves current memory resource configuration for a container
+func (r *Recommender) getCurrentResourceConfig(ctx context.Context, deployment, container string) (*ResourceConfig, error) {
+	config := &ResourceConfig{}
+
+	// Query current memory requests
+	requestPromql := fmt.Sprintf(`kube_pod_container_resource_requests{namespace="%s", container="%s", resource="memory", pod=~"%s-.*"}`,
+		r.namespace, container, deployment)
+
+	requestData, err := r.client.Query(ctx, requestPromql)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get memory requests: %w", err)
+	}
+
+	// Parse request values
+	if len(requestData.Data.Result) > 0 {
+		for _, result := range requestData.Data.Result {
+			if valueStr, ok := result.Value[1].(string); ok {
+				if value, err := strconv.ParseFloat(valueStr, 64); err == nil {
+					config.RequestBytes = value
+					config.RequestMB = int64(value) / 1024 / 1024
+					break // Take the first valid value
+				}
+			}
+		}
+	}
+
+	// Query current memory limits
+	limitPromql := fmt.Sprintf(`kube_pod_container_resource_limits{namespace="%s", container="%s", resource="memory", pod=~"%s-.*"}`,
+		r.namespace, container, deployment)
+
+	limitData, err := r.client.Query(ctx, limitPromql)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get memory limits: %w", err)
+	}
+
+	// Parse limit values
+	if len(limitData.Data.Result) > 0 {
+		for _, result := range limitData.Data.Result {
+			if valueStr, ok := result.Value[1].(string); ok {
+				if value, err := strconv.ParseFloat(valueStr, 64); err == nil {
+					config.LimitBytes = value
+					config.LimitMB = int64(value) / 1024 / 1024
+					break // Take the first valid value
+				}
+			}
+		}
+	}
+
+	return config, nil
 }

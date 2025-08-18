@@ -28,6 +28,8 @@ func (mc *MetricsChecker) CheckRequiredMetrics(ctx context.Context) bool {
 		fmt.Sprintf(`kube_replicaset_owner{namespace="%s"}`, mc.namespace),
 		fmt.Sprintf(`kube_deployment_created{namespace="%s"}`, mc.namespace),
 		fmt.Sprintf(`kube_deployment_spec_replicas{namespace="%s"}`, mc.namespace),
+		fmt.Sprintf(`kube_pod_container_resource_requests{namespace="%s", resource="memory"}`, mc.namespace),
+		fmt.Sprintf(`kube_pod_container_resource_limits{namespace="%s", resource="memory"}`, mc.namespace),
 	}
 
 	for _, metric := range requiredMetrics {
