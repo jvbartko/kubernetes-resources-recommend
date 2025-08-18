@@ -30,12 +30,6 @@
 - 🔄 **可压缩性** - CPU资源不足时，容器会被限流而不会被杀死
 - 📊 **复杂模式** - CPU使用受业务峰值、并发量等多因素影响，预测复杂
 - 🌊 **动态调整** - Kubernetes HPA可以根据CPU使用率自动扩缩容
-- ⏰ **时机考虑** - 计划在后续版本中加入CPU推荐功能
-
-### 🔮 未来规划
-
-- **v2.0** - 增加CPU资源推荐
-
 
 ## 📁 项目结构
 
@@ -116,14 +110,14 @@ make run ARGS="-prometheusUrl=https://prometheus.example.com -checkNamespace=sta
 
 ```mermaid
 graph TD
-    A[🔍 收集7天历史数据] --> B[⏰ 按小时粒度分析]
-    B --> C[📊 计算每日P90值]
-    C --> D[⚖️ 应用指数衰减权重]
-    D --> E[🎯 生成最终推荐值]
+    A["收集7天历史数据"] --> B["按小时粒度分析"]
+    B --> C["计算每日P90值"]
+    C --> D["应用指数衰减权重"]
+    D --> E["生成最终推荐值"]
     
-    F[💾 container_memory_rss] --> A
-    G[🔢 weight = 0.5^(day+1)] --> D
-    E --> H[📄 Excel报告输出]
+    F["container_memory_rss指标"] --> A
+    G["weight = 0.5^(day+1)"] --> D
+    E --> H["Excel报告输出"]
 ```
 
 **算法详解：**
@@ -139,7 +133,7 @@ graph TD
 
 程序会生成名为 `{namespace}-resource-recommend.xlsx` 的Excel文件：
 
-> 📝 **注意**：当前版本仅包含**内存资源推荐**，CPU资源推荐将在后续版本提供
+> 📝 **注意**：当前版本仅包含**内存资源推荐**
 
 ### 📋 报告字段说明
 
