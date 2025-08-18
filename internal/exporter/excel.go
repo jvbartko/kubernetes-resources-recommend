@@ -167,14 +167,14 @@ func (e *ExcelExporter) addSummarySection(f *excelize.File, sheetName string, re
 		Fill: excelize.Fill{Type: "pattern", Color: []string{"#4F81BD"}, Pattern: 1},
 	})
 
-	f.SetCellValue(sheetName, fmt.Sprintf("A%d", startRow), "📊 优化汇总统计")
+	f.SetCellValue(sheetName, fmt.Sprintf("A%d", startRow), "📊 Optimization Summary Statistics")
 	f.SetCellStyle(sheetName, fmt.Sprintf("A%d", startRow), fmt.Sprintf("K%d", startRow), summaryTitleStyle)
 	f.MergeCell(sheetName, fmt.Sprintf("A%d", startRow), fmt.Sprintf("K%d", startRow))
 
 	// Add summary data
 	summaryData := [][]interface{}{
-		{"指标", "当前配置", "推荐配置", "优化量", "优化百分比"},
-		{"容器总数", containerCount, "", "", ""},
+		{"Metric", "Current Config", "Recommended", "Optimization", "Optimization %"},
+		{"Total Containers", containerCount, "", "", ""},
 		{"Memory Request (MB)", totalCurrentRequestMB, totalRecommendedRequestMB, totalRequestOptimizationMB, fmt.Sprintf("%.1f%%", totalRequestOptimizationPct)},
 		{"Memory Limit (MB)", totalCurrentLimitMB, totalRecommendedLimitMB, totalLimitOptimizationMB, fmt.Sprintf("%.1f%%", totalLimitOptimizationPct)},
 	}
